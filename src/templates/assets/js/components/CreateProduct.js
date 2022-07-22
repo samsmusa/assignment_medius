@@ -1,24 +1,40 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import TagsInput from 'react-tagsinput';
 import 'react-tagsinput/react-tagsinput.css';
 import Dropzone from 'react-dropzone'
+import { ConversationScroller } from 'linkedin-private-api/dist/src/scrollers';
+import { forEach } from 'lodash';
 
 
 const CreateProduct = (props) => {
 
     const [productVariantPrices, setProductVariantPrices] = useState([])
-
+    const [title, setTitle] = useState('')
+    const [imgurl, setImgurl] = useState('')
+    const [desctiption, setDesctiption] = useState('')
+    const [psku, setPsku] = useState('')
     const [productVariants, setProductVariant] = useState([
         {
             option: 1,
             tags: []
         }
     ])
+    const [image, setImage] = useState(null);
+    const onImageChange = (file) => {
+        if (file) {
+        setImage(URL.createObjectURL(file));
+        }
+    };
+    
     console.log(typeof props.variants)
-    // handle click event of the Add button
+
+   // handle click event of the Add button
     const handleAddClick = () => {
+        console.log(props.variants)
         let all_variants = JSON.parse(props.variants.replaceAll("'", '"')).map(el => el.id)
+        console.log(all_variants)
         let selected_variants = productVariants.map(el => el.option);
+        console.log(selected_variants)
         let available_variants = all_variants.filter(entry1 => !selected_variants.some(entry2 => entry1 == entry2))
         setProductVariant([...productVariants, {
             option: available_variants[0],
@@ -74,31 +90,106 @@ const CreateProduct = (props) => {
         return ans;
     }
 
+
+
+
+
+
+    // getting cookies 
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+
+    const Imgbb = async (image) => {
+        let img 
+        const formData = new FormData();
+        formData.append("image", image);
+        const url =
+          "https://api.imgbb.com/1/upload?key=9f7c4ce4a7f88b88c165406bf575051a";
+      
+        await fetch(url, {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.success) {
+              img = res.data.url;
+            }
+          });
+        return img
+      };
+
+
+
+
     // Save product
-    let saveProduct = (event) => {
+    let saveProduct = async (event) => {
         event.preventDefault();
+        console.log(productVariants)
+        console.log(productVariantPrices)
+        console.log(title)
+        console.log(desctiption)
+        console.log(psku)
+        let url = await imgurl
+        const data = {
+            variant: productVariants,
+            product_variant_price: productVariantPrices,
+            title: title,
+            desctiption: desctiption,
+            sku: psku,
+            image: url
+        }
         // TODO : write your code here to save the product
+        var csrftoken = getCookie('csrftoken');
+        console.log(csrftoken)
+        console.log(data)
+        let response = fetch("http://127.0.0.1:8000/product/create/", {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json',
+                "X-CSRFToken": csrftoken
+            },
+        }).then(res=>res.json())
+        .then(res=> console.log(res))
+
+
     }
 
 
     return (
         <div>
             <section>
+                <form onSubmit={saveProduct}>
                 <div className="row">
                     <div className="col-md-6">
                         <div className="card shadow mb-4">
                             <div className="card-body">
                                 <div className="form-group">
                                     <label htmlFor="">Product Name</label>
-                                    <input type="text" placeholder="Product Name" className="form-control"/>
+                                    <input onChange={() => setTitle(event.target.value)} type="text" placeholder="Product Name" className="form-control" required />
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="">Product SKU</label>
-                                    <input type="text" placeholder="Product Name" className="form-control"/>
+                                    <input onChange={() => setPsku(event.target.value)} type="text" placeholder="Product Name" className="form-control" required />
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="">Description</label>
-                                    <textarea id="" cols="30" rows="4" className="form-control"></textarea>
+                                    <textarea onChange={() => setDesctiption(event.target.value)} id="" cols="30" rows="4" className="form-control"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -108,9 +199,14 @@ const CreateProduct = (props) => {
                                 className="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                 <h6 className="m-0 font-weight-bold text-primary">Media</h6>
                             </div>
+                            <img src={image} />
                             <div className="card-body border">
-                                <Dropzone onDrop={acceptedFiles => console.log(acceptedFiles)}>
-                                    {({getRootProps, getInputProps}) => (
+                                
+                                <Dropzone onDrop={acceptedFiles => {
+                                    onImageChange(acceptedFiles[0])
+                                    setImgurl(Imgbb(acceptedFiles[0]))
+                                }}>
+                                    {({ getRootProps, getInputProps }) => (
                                         <section>
                                             <div {...getRootProps()}>
                                                 <input {...getInputProps()} />
@@ -142,7 +238,7 @@ const CreateProduct = (props) => {
                                                             {
                                                                 JSON.parse(props.variants.replaceAll("'", '"')).map((variant, index) => {
                                                                     return (<option key={index}
-                                                                                    value={variant.id}>{variant.title}</option>)
+                                                                        value={variant.id}>{variant.title}</option>)
                                                                 })
                                                             }
 
@@ -155,15 +251,15 @@ const CreateProduct = (props) => {
                                                         {
                                                             productVariants.length > 1
                                                                 ? <label htmlFor="" className="float-right text-primary"
-                                                                         style={{marginTop: "-30px"}}
-                                                                         onClick={() => removeProductVariant(index)}>remove</label>
+                                                                    style={{ marginTop: "-30px" }}
+                                                                    onClick={() => removeProductVariant(index)}>remove</label>
                                                                 : ''
                                                         }
 
-                                                        <section style={{marginTop: "30px"}}>
+                                                        <section style={{ marginTop: "30px" }}>
                                                             <TagsInput value={element.tags}
-                                                                       style="margin-top:30px"
-                                                                       onChange={(value) => handleInputTagOnChange(value, index)}/>
+                                                                style="margin-top:30px"
+                                                                onChange={(value) => handleInputTagOnChange(value, index)} />
                                                         </section>
 
                                                     </div>
@@ -189,24 +285,28 @@ const CreateProduct = (props) => {
                                 <div className="table-responsive">
                                     <table className="table">
                                         <thead>
-                                        <tr>
-                                            <td>Variant</td>
-                                            <td>Price</td>
-                                            <td>Stock</td>
-                                        </tr>
+                                            <tr>
+                                                <td>Variant</td>
+                                                <td>Price</td>
+                                                <td>Stock</td>
+                                            </tr>
                                         </thead>
                                         <tbody>
-                                        {
-                                            productVariantPrices.map((productVariantPrice, index) => {
-                                                return (
-                                                    <tr key={index}>
-                                                        <td>{productVariantPrice.title}</td>
-                                                        <td><input className="form-control" type="text"/></td>
-                                                        <td><input className="form-control" type="text"/></td>
-                                                    </tr>
-                                                )
-                                            })
-                                        }
+                                            {
+                                                productVariantPrices.map((productVariantPrice, index) => {
+                                                    return (
+                                                        <tr key={index}>
+                                                            <td>{productVariantPrice.title}</td>
+                                                            <td><input onChange={() => {
+                                                                productVariantPrice.price = parseFloat(event.target.value)
+                                                            }} className="form-control" type="text" /></td>
+                                                            <td><input onChange={() => {
+                                                                productVariantPrice.stock = parseInt(event.target.value)
+                                                            }} className="form-control" type="text" /></td>
+                                                        </tr>
+                                                    )
+                                                })
+                                            }
                                         </tbody>
                                     </table>
                                 </div>
@@ -215,11 +315,16 @@ const CreateProduct = (props) => {
                     </div>
                 </div>
 
-                <button type="button" onClick={saveProduct} className="btn btn-lg btn-primary">Save</button>
+                <button type="submit" className="btn btn-lg btn-primary">Save</button>
                 <button type="button" className="btn btn-secondary btn-lg">Cancel</button>
+                </form>
             </section>
         </div>
     );
 };
 
 export default CreateProduct;
+
+
+
+

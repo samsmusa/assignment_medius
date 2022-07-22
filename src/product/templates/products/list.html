@@ -1,5 +1,5 @@
 {% extends 'backend/base.html' %}
-
+{% load custom_tags %}
 {% block title %} Product List {% endblock %}
 
 {% block content %}
@@ -13,12 +13,19 @@
         <form action="" method="get" class="card-header">
             <div class="form-row justify-content-between">
                 <div class="col-md-2">
-                    <input type="text" name="title" placeholder="Product Title" class="form-control">
+                    <input type="text" name="title__icontains" placeholder="Product Title" class="form-control">
                 </div>
                 <div class="col-md-2">
-                    <select name="variant" id="" class="form-control">
+                    <select name="variant_title__iexact" id="" class="form-control">
                         <option selected disabled>--Select A Variant--</option>
-
+                        {% for variant in variants %}
+                        <option selected disabled style="font-size:20px; color:black; font-weight:800;"> {{variant.title}} </option>
+                        {% with variant.productvariant_set.all|unique_val as items %}
+                        {% for item in items %}
+                        <option value="{{variant.title}} {{item}}">{{item}}</option>
+                        {% endfor %}
+                         {% endwith %}
+                        {% endfor %}
                     </select>
                 </div>
 
@@ -27,13 +34,13 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Price Range</span>
                         </div>
-                        <input type="text" name="price_from" aria-label="First name" placeholder="From"
+                        <input type="text" name="price__gte" aria-label="First name" placeholder="From"
                                class="form-control">
-                        <input type="text" name="price_to" aria-label="Last name" placeholder="To" class="form-control">
+                        <input type="text" name="price__lte" aria-label="Last name" placeholder="To" class="form-control">
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <input type="date" name="date" placeholder="Date" class="form-control">
+                    <input type="date" name="created_at__date" placeholder="Date" class="form-control">
                 </div>
                 <div class="col-md-1">
                     <button type="submit" class="btn btn-primary float-right"><i class="fa fa-search"></i></button>
@@ -45,6 +52,7 @@
             <div class="table-response">
                 <table class="table">
                     <thead>
+                        
                     <tr>
                         <th>#</th>
                         <th>Title</th>
@@ -55,49 +63,34 @@
                     </thead>
 
                     <tbody>
+                        {% for product in products %}
+
+                        
+                        {% comment %} {{product.pvarinat.variant_title}} {% endcomment %}
                     <tr>
-                        <td>1</td>
-                        <td>T-Shirt <br> Created at : 25-Aug-2020</td>
-                        <td>Quality product in low cost</td>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ product.title }} <br> Created at : {{ product.created_at|date:"d-M-Y" }}</td>
+                        <td>{{ product.description }}</td>
                         <td>
+                            {% for variant in product.pvariantprice.all %}
+
+                                    
                             <dl class="row mb-0" style="height: 80px; overflow: hidden" id="variant">
                                 <dt class="col-sm-3 pb-0">
-                                    XL/ Black/ Full
+                                    
+                                    {{variant.product_variant_one.variant_title}}/{{variant.product_variant_two.variant_title}}/{{variant.product_variant_three.variant_title}}
+                                    
                                 </dt>
                                 <dd class="col-sm-9">
                                     <dl class="row mb-0">
-                                        <dd class="col-sm-4 pb-0">Price : 200.0</dd>
-                                        <dd class="col-sm-8 pb-0">InStock : 50.</dd>
+                                        <dd class="col-sm-4 pb-0">Price : {{variant.price }} </dd>
+                                        <dd class="col-sm-8 pb-0">InStock : {{variant.stock}}.</dd>
                                     </dl>
                                 </dd>
-                                <dt class="col-sm-3 pb-0">
-                                    XL/ Black/ Half
-                                </dt>
-                                <dd class="col-sm-9">
-                                    <dl class="row mb-0">
-                                        <dd class="col-sm-4 pb-0">Price : 200.0</dd>
-                                        <dd class="col-sm-8 pb-0">InStock : 50.</dd>
-                                    </dl>
-                                </dd>
-                                <dt class="col-sm-3 pb-0">
-                                    L/ Black/ Full
-                                </dt>
-                                <dd class="col-sm-9">
-                                    <dl class="row mb-0">
-                                        <dd class="col-sm-4 pb-0">Price : 200.0</dd>
-                                        <dd class="col-sm-8 pb-0">InStock : 50.</dd>
-                                    </dl>
-                                </dd>
-                                <dt class="col-sm-3 pb-0">
-                                    L/ Black/ Half
-                                </dt>
-                                <dd class="col-sm-9">
-                                    <dl class="row mb-0">
-                                        <dd class="col-sm-4 pb-0">Price : 200.0</dd>
-                                        <dd class="col-sm-8 pb-0">InStock : 50.</dd>
-                                    </dl>
-                                </dd>
+                                
                             </dl>
+
+                            {% endfor %}
                             <button onclick="$('#variant').toggleClass('h-auto')" class="btn btn-sm btn-link">Show more
                             </button>
                         </td>
@@ -107,6 +100,7 @@
                             </div>
                         </td>
                     </tr>
+                    {% endfor %}
                     </tbody>
 
                 </table>
@@ -117,9 +111,39 @@
         <div class="card-footer">
             <div class="row justify-content-between">
                 <div class="col-md-6">
-                    <p>Showing 1 to 10 out of 100</p>
+                    <p>Showing {{ page_obj.number|summary_data_first }} to {{ page_obj.number|summary_data_second:paginator.count}} out of {{ paginator.count }} </p>
                 </div>
                 <div class="col-md-2">
+
+                    <nav aria-label="Page navigation example">
+                        <ul class="pagination">
+                          <li class="page-item">
+
+                            {% if page_obj.has_previous %}
+                            <a class="page-link" href="?{% param_replace page=page_obj.previous_page_number %}"  aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                              </a>
+                            {% endif %}
+
+                            
+                          </li>
+
+                          {% with ''|center:page_obj.paginator.num_pages as range %}
+                            {% for _ in range %}
+
+                          <li class="page-item {% if page_obj.number == forloop.counter %} active {% endif %}"><a class="page-link" href="?{% param_replace page=forloop.counter %}">{{forloop.counter}}</a></li>
+                          {% endfor %}
+                            {% endwith %}
+
+                            {% if page_obj.has_next %}
+                                <a class="page-link" href="?{% param_replace page=page_obj.next_page_number %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            {% endif %}
+                            
+                          </li>
+                        </ul>
+                      </nav>
 
                 </div>
             </div>
