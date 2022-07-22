@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import TagsInput from 'react-tagsinput';
 import 'react-tagsinput/react-tagsinput.css';
 import Dropzone from 'react-dropzone'
-import { ConversationScroller } from 'linkedin-private-api/dist/src/scrollers';
-import { forEach } from 'lodash';
 
 
 const CreateProduct = (props) => {
@@ -165,7 +163,10 @@ const CreateProduct = (props) => {
                 "X-CSRFToken": csrftoken
             },
         }).then(res=>res.json())
-        .then(res=> console.log(res))
+        .then(res=> {
+            console.log(res)
+            alert(res.message);
+        })
 
 
     }
@@ -174,7 +175,7 @@ const CreateProduct = (props) => {
     return (
         <div>
             <section>
-                <form onSubmit={saveProduct}>
+                {/* <form onSubmit={saveProduct}> */}
                 <div className="row">
                     <div className="col-md-6">
                         <div className="card shadow mb-4">
@@ -315,9 +316,9 @@ const CreateProduct = (props) => {
                     </div>
                 </div>
 
-                <button type="submit" className="btn btn-lg btn-primary">Save</button>
+                <button type="submit btn" onClick={saveProduct} className="btn btn-lg btn-primary">Save</button>
                 <button type="button" className="btn btn-secondary btn-lg">Cancel</button>
-                </form>
+                {/* </form> */}
             </section>
         </div>
     );

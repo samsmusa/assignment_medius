@@ -4,7 +4,7 @@ from django.db.models import Prefetch
 import json
 from product.models import Product, ProductVariant, Variant, ProductVariantPrice, ProductImage
 from django.views.generic import ListView, CreateView
-from django.http import JsonResponse
+from django.http import HttpResponse
 
 
 class CreateProductView(generic.TemplateView):
@@ -21,16 +21,17 @@ class CreateProductView(generic.TemplateView):
 
     def post(self, request, *args, **kwargs):
         data = json.loads(self.request.body)
-        print(data['title'])
-        print(data['variant'])
-        print(data['product_variant_price'])
-        print(data['image'])
+        # print(data['title'])
+        # print(data['variant'])
+        # print(data['product_variant_price'])
+        # print(data['image'])
+        # print(data['sku'])
 
         try:
             product = Product.objects.create(
                 title=data['title'], description=data['desctiption'], sku=data['sku'])
-        except IntegrityError as ex:
-            return self.JsonResponse({'message': ex})
+        except:
+            return HttpResponse(json.dumps({'message':'failed', 'status':403}),content_type="application/json")
 
         if len(data['image']) != 0:
             ProductImage.objects.create(
@@ -42,8 +43,8 @@ class CreateProductView(generic.TemplateView):
                 try:
                     product_varinats[tag] = ProductVariant.objects.create(
                     variant_title=tag, variant=Variant.objects.get(pk=obj['option']), product=product)
-                except IntegrityError as ex:
-                    return self.JsonResponse({'message': ex})
+                except:
+                    return HttpResponse(json.dumps({'message':'some internal error', 'status':403}),content_type="application/json")
 
         product_varinats_price_variants = [
             'product_variant_one', 'product_variant_two', 'product_variant_three']
@@ -59,10 +60,11 @@ class CreateProductView(generic.TemplateView):
                 product_vprice = ProductVariantPrice.objects.create(
                     price=obj['price'], stock=obj['stock'], product=product, **list1)
                 result.append(product_vprice)
-            except IntegrityError as ex:
-                return self.render_to_response({'message': ex})
+            except:
+                return HttpResponse(json.dumps({'message':'some internal error', 'status':403}),content_type="application/json")
 
-        return self.render_to_response({'message': 'success', "data": result})
+        # return self.render_to_response({'message': 'success', "data": result})
+        return HttpResponse(json.dumps({'message': 'success', 'status':200}),content_type="application/json")
 
 
 
